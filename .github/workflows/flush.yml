@@ -1,0 +1,26 @@
+name: Flush all PDFs
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type FLUSH to delete every PDF and its history"
+        required: true
+permissions:
+  contents: write
+jobs:
+  flush:
+    if: ${{ github.event.inputs.confirm == 'FLUSH' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace all history with one clean commit
+        run: |
+          git config user.name "ExamHall Flush"
+          git config user.email "actions@github.com"
+          git checkout --orphan fresh
+          git rm -r -q --cached . || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
+          printf "# ExamHall PDFs\n\nTemporary. Flushed %s.\n" "$(date -u +%Y-%m-%d)" > README.md
+          git add .github README.md
+          git commit -q -m "Flushed $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push --force origin fresh:main
